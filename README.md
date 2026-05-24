@@ -23,3 +23,6 @@
 * show active users
 * persistant editing
 * task editing
+
+### TASKS
+1. create board component
