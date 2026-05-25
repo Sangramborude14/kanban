@@ -103,6 +103,46 @@ const editTask = (coloumnId:string,taskId:string) => {
         })
     }))
 }
+
+const handleDragStart = (e: React.DragEvent,taskId: string, sourceColId: string) => {
+    e.dataTransfer.setData("taskId",taskId);
+    e.dataTransfer.setData("sourceColId",sourceColId);
+}
+
+const handleDrop = (e: React.DragEvent, targetColId: string) => {   
+    const taskId = e.dataTransfer.getData("taskId");
+    const sourceColId = e.dataTransfer.getData("sourceColId");
+
+    if(sourceColId == targetColId) return;
+
+    setBoard(prevBoard => {
+        const sourceCol = prevBoard.columns.find(col => col.id === sourceColId);
+
+        const taskToMove = sourceCol?.tasks.find(t => t.id === taskId);
+
+        if(!taskToMove) return prevBoard;
+
+        return {
+            ...prevBoard,
+            columns: prevBoard.columns.map(col => {
+                if(col.id === sourceColId){
+                    return {
+                        ...col,
+                        tasks: col.tasks.filter(t => t.id !== taskId)
+                    }
+                }
+
+                if(col.id === targetColId){
+                    return{
+                        ...col,
+                        tasks: [...col.tasks,{...taskToMove,columnId: targetColId}]
+                    }
+                }
+                return col;
+            })
+        }
+    })
+}
     const task1 = {
         id: '1',
         title: 'play gta 5',
@@ -157,13 +197,19 @@ const editTask = (coloumnId:string,taskId:string) => {
     </h1>
     <div className="m-4 text-center flex justify-center">
       {board.columns.map((column) => (
-        <div key={column.id} className="flex-1 mx-4 p-3 border-3 border-cyan-950 mr-12">
+        <div key={column.id}
+         className= {columnDiv_css}
+         onDragOver= {(e) => e.preventDefault()}
+         onDrop={(e) => handleDrop(e, column.id)}>
           <h1 className="text-2xl text-red-400">
             {column.title}
           </h1>
           <div>
             {column.tasks.map((task) => (
-              <div key={task.id} className={taskDiv_css}>
+              <div key={task.id}
+               className={taskDiv_css}
+               draggable
+               onDragStart={(e) => handleDragStart(e,task.id,column.id)}>
                 <h1 className="font-bold mb-3 text-xl">
                   {task.title}
                 </h1>
@@ -204,3 +250,4 @@ const taskSpan_css = "font-thin text-xs text-blue-400"
 const taskDiv_css = "my-2 bg-gray-900 py-6 px-4"
 const addTaskBtn_css = "font-extrabold  px-4 py-0 rounded-full m-2 text-2xl bg-gray-800 text-red-600"
 const deleteTaskBtn_css = "mx-2 border p-2 bg-black rounded-full mt-3 text-red-600 font-bold hover:scale-110 hover:text-2xl hover:bg-red-600 hover:text-black transition-all duration-200 "
+const columnDiv_css = "flex-1 mx-4 p-3 border-3 border-cyan-950 mr-12"
