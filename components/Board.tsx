@@ -5,26 +5,28 @@ import { title } from "process";
 
 
 export default function Board(){
+    const timestamp = Date.now();
+    const date = new Date(timestamp);
     const task1 = {
         id: '1',
         title: 'play gta 5',
         description: 'i have to play gta 1 hour',
         columnId: '1234',
-        createdAt: `${Date.now()}`
+        createdAt: `${date.toDateString()}`
     }
     const task3 = {
         id: '2',
         title: 'eat donut',
         description: 'i want to eat a choco donut',
         columnId: '1235',
-        createdAt: `${Date.now()}`,
+        createdAt: `${date.toDateString()}`,
     }
     const task4 = {
         id: '3',
         title: 'cycling',
         description: 'go 5Km cycling',
         columnId: '1236',
-        createdAt: `${Date.now()}`,
+        createdAt: `${date.toDateString()}`,
     }
 
      const column1 = {
@@ -53,24 +55,32 @@ export default function Board(){
     })   
     
     return(<>
-    <div>
-        <h1>{board.title}</h1>
-        <div>
+    <div className="h-screen overflow-hidden w-screen">
+        <h1 className={boardTitlecss}>
+            {board.title}
+        </h1>
+        <div className="m-4 flex w-full text-center">
             {board.columns.map((column) => (
-                <div key={column.id}>
-                    <h1>{column.title}</h1>
+                <div key={column.id} className="flex-1 mx-4 p-3 border-3 border-cyan-950 mr-12">
+                    <h1 className="text-2xl text-red-400">
+                        {column.title}
+                        </h1>
                     <div>
                         {column.tasks.map((task) => (
-                            <div key={task.id}>
-                                <h1>{task.title}</h1>
-                                <p>{task.description}</p>
-                                <span>created at : {task.createdAt}</span>
+                            <div key={task.id} className="my-2 bg-gray-900 py-6 px-4">
+                                <h1 className="font-bold mb-3 text-xl">
+                                    {task.title}
+                                    </h1>
+                                <p className="font-light text-sm italic text-gray-300">{task.description}</p>
+                                <span className="font-thin text-xs text-blue-400">created at: {task.createdAt}</span>
                             </div>
                     ))} 
-        </div>
+        </div> 
     </div>
 ))}
      </div>
     </div>
     </>)
 }
+
+const boardTitlecss = "text-center font-bold text-5xl p-2 m-6"
