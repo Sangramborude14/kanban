@@ -1,0 +1,37 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Board {
+  id String @id @default(uuid())
+  title String
+  columns Column[]
+  createdAt DateTime @default(now())
+}
+
+model Column {
+  id String @id @default(uuid())
+  title String
+  boardId String
+  board Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  tasks Task[]
+}
+
+model Task{
+  id String @id @default(uuid())
+  title String
+  description String?
+  columnId String
+  column Column @relation(fields: [columnId],references: [id],onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
