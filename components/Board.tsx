@@ -1,7 +1,8 @@
 "use client"
 import { useState } from "react";
 import { kanban,Column,Task} from "@/types/board";
- 
+import {Trash,SquarePen} from "lucide-react";
+
 
 
 export default function Board(){
@@ -37,7 +38,7 @@ export default function Board(){
 
     const newTask:Task = {
         id: id,
-        title: title,
+        title: title,   
         description: description,
         columnId: columnId,
         createdAt: createdAt,
@@ -55,6 +56,53 @@ export default function Board(){
     })
 }
 
+const deleteTask = (columnId: string, taskId: string) => {
+        setBoard(prevBoard => {
+            return {
+                ...prevBoard,
+                columns: prevBoard.columns.map((col) => {
+                    if(col.id === columnId) {
+                        return{
+                            ...col,
+                            tasks: col.tasks.filter((task) => task.id !== taskId)
+                        }
+                    }
+                    return col;
+                })
+            }
+        })
+}
+
+const editTask = (coloumnId:string,taskId:string) => {
+    const currentColumn = board.columns.find(col => col.id === coloumnId)
+    const currentTask  = currentColumn?.tasks.find(t => t.id === taskId);
+
+    if(!currentTask) return ;
+
+    const newTitle = prompt("Edit Task Title",currentTask.title)
+
+    if(!newTitle) return;
+    const newDescription = prompt("Edit Task description:",currentTask.description || "");
+
+    setBoard(prevBoard => ({
+        ...prevBoard,
+        columns: prevBoard.columns.map(col => {
+            if(col.id === coloumnId){
+                return {
+                    ...col,
+                    tasks: col.tasks.map((task) => {
+                        if(task.id === taskId){
+                            return  {...task,title: newTitle,description: newDescription,}
+                        }
+                        return task;
+                        
+                    })
+                }
+            }
+            return col;
+        })
+    }))
+}
     const task1 = {
         id: '1',
         title: 'play gta 5',
@@ -120,10 +168,16 @@ export default function Board(){
                   {task.title}
                 </h1>
                 <p className={taskPara_css}>{task.description}</p>
-                <span className={taskSpan_css}>created at: {task.createdAt}</span>
+                <span className={taskSpan_css}>created at: {task.createdAt}</span><br/>
+                <button className={deleteTaskBtn_css} onClick={() => deleteTask(column.id,task.id)}
+                ><Trash size={18}/>
+                </button>
+                <button className={deleteTaskBtn_css} onClick={() => editTask(column.id,task.id)}>
+                   <SquarePen size={18}/>
+                </button>
               </div>
             ))}
-            <div className="">
+            <div>
               <span>Add a Task</span>
               <br />
               <button className={addTaskBtn_css} onClick={() => addTask(column)} >+</button>
@@ -133,8 +187,8 @@ export default function Board(){
       ))}
       <div className="flex-1 mx-4 p-3 border-3 border-cyan-950 mr-12">
         <h1 className="text-2xl text-red-400">Add a column</h1>
-        <div className={taskDiv_css}>
-          <button onClick={addColumn} className="my-2 font-extrabold text-3xl p-3 px-5 border-4 rounded-full">
+        <div className= {taskDiv_css}>
+          <button onClick={addColumn} className="my-2 font-extrabold text-3xl p-3 px-5 border-4 rounded-full ">
             +
           </button>
         </div>
@@ -149,3 +203,4 @@ const taskPara_css = "font-light text-sm italic text-gray-300"
 const taskSpan_css = "font-thin text-xs text-blue-400"
 const taskDiv_css = "my-2 bg-gray-900 py-6 px-4"
 const addTaskBtn_css = "font-extrabold  px-4 py-0 rounded-full m-2 text-2xl bg-gray-800 text-red-600"
+const deleteTaskBtn_css = "mx-2 border p-2 bg-black rounded-full mt-3 text-red-600 font-bold hover:scale-110 hover:text-2xl hover:bg-red-600 hover:text-black transition-all duration-200 "
