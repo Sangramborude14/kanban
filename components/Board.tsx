@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { kanban,Column,Task} from "@/types/board";
 import {Trash,SquarePen} from "lucide-react";
 
@@ -11,6 +11,7 @@ export default function Board(){
 
     const addColumn = () => {
     const title = prompt("enter the column title");
+    if(!board) return;
 
     if(!title) return;
     const newColumn: Column = {
@@ -20,6 +21,7 @@ export default function Board(){
         boardId: board.id
     }
     setBoard(prevBoard => {
+        if(!prevBoard) return null;
         return {...prevBoard,
             columns: [...prevBoard.columns,newColumn]
         }
@@ -27,6 +29,8 @@ export default function Board(){
     }
 
     const addTask = (column: Column) => {
+        if(!board) return ;
+
     const id = `task-${Date.now()}`
     const title = prompt("enter the task title");
     const description = prompt("enter the description");
@@ -44,6 +48,7 @@ export default function Board(){
         createdAt: createdAt,
     }
     setBoard(prevBoard => {
+        if(!prevBoard) return null;
         return {...prevBoard,columns: (
             prevBoard.columns.map((column) => {
             if (column.id === columnId){
@@ -58,6 +63,7 @@ export default function Board(){
 
 const deleteTask = (columnId: string, taskId: string) => {
         setBoard(prevBoard => {
+            if(!prevBoard) return null;
             return {
                 ...prevBoard,
                 columns: prevBoard.columns.map((col) => {
@@ -74,6 +80,8 @@ const deleteTask = (columnId: string, taskId: string) => {
 }
 
 const editTask = (coloumnId:string,taskId:string) => {
+    if(!board) return;
+
     const currentColumn = board.columns.find(col => col.id === coloumnId)
     const currentTask  = currentColumn?.tasks.find(t => t.id === taskId);
 
@@ -84,7 +92,9 @@ const editTask = (coloumnId:string,taskId:string) => {
     if(!newTitle) return;
     const newDescription = prompt("Edit Task description:",currentTask.description || "");
 
-    setBoard(prevBoard => ({
+    setBoard(prevBoard => {
+        if(!prevBoard) return null;
+        return{
         ...prevBoard,
         columns: prevBoard.columns.map(col => {
             if(col.id === coloumnId){
@@ -101,7 +111,7 @@ const editTask = (coloumnId:string,taskId:string) => {
             }
             return col;
         })
-    }))
+    }})
 }
 
 const handleDragStart = (e: React.DragEvent,taskId: string, sourceColId: string) => {
@@ -116,6 +126,8 @@ const handleDrop = (e: React.DragEvent, targetColId: string) => {
     if(sourceColId == targetColId) return;
 
     setBoard(prevBoard => {
+        if(!prevBoard) return null;
+
         const sourceCol = prevBoard.columns.find(col => col.id === sourceColId);
 
         const taskToMove = sourceCol?.tasks.find(t => t.id === taskId);
@@ -184,12 +196,29 @@ const handleDrop = (e: React.DragEvent, targetColId: string) => {
         tasks: [task4],
         boardId: 'board1',
     }
-    const [board,setBoard] = useState<kanban>({
-        id: 'board1',
-        title: 'My Project Board',
-        columns: [column1,column2,column3],
-    })   
+    const [board,setBoard] = useState<kanban | null>(null)
     
+    useEffect(() => {
+        const fetchBoard = async () => {
+            try{
+                const res = await fetch("/api/boards");
+                const data = await res.json();
+                setBoard(data);
+            }catch(error){
+                console.error("error fetching board",error);
+            }
+            
+        }
+        fetchBoard();
+    },[])
+    
+    if(!board){
+        return(<>
+        <div>
+            Loading Board .....
+        </div>
+        </>)
+    }
     return(<>
   <div className="h-screen overflow-hidden w-screen">
     <h1 className={boardTitle_css}>
