@@ -6,7 +6,7 @@ import { title } from "process";
 
 
 
-export default function Board(){
+export default function Board({boardId}: {boardId: string}){
     const timestamp = Date.now();
     const date = new Date(timestamp);
 
@@ -44,6 +44,40 @@ export default function Board(){
         console.error("error adding column");
         alert("error adding column")
     }
+    }
+
+    const deleteColumn = async (columnId: string) => {
+        if(!board) return;
+
+        const column = board.columns.find(col => col.id === columnId);
+        if(!column) return;
+
+        if(column.tasks.length > 0){
+            alert("Cannot delete a column with tasks")
+            return;
+        }
+        
+        try{
+        const res = await fetch(`/api/columns/${columnId}`,{
+            method: "DELETE",
+        });
+        
+        if(!res.ok){
+            const errorData = await res.json();
+            throw new Error(errorData.error || "Failed to delete column")
+        }
+        setBoard(prevBoard => {
+            if(!prevBoard) return null;
+            return {
+                ...prevBoard,
+                columns: prevBoard.columns.filter((col) => col.id !== columnId)
+            }
+        })
+    }catch(error){
+        console.error(`error deleting column`);
+        alert("could not delete column")
+    }
+
     }
 
     const addTask = async (column: Column) => {
@@ -257,7 +291,7 @@ const handleDrop = async(e: React.DragEvent, targetColId: string) => {
     useEffect(() => {
         const fetchBoard = async () => {
             try{
-                const res = await fetch("/api/boards");
+                const res = await fetch(`/api/boards/${boardId}`);
                 const data = await res.json();
                 setBoard(data);
             }catch(error){
@@ -266,7 +300,7 @@ const handleDrop = async(e: React.DragEvent, targetColId: string) => {
             
         }
         fetchBoard();
-    },[])
+    },[boardId])
     
     if(!board){
         return(<>
@@ -286,9 +320,23 @@ const handleDrop = async(e: React.DragEvent, targetColId: string) => {
          className= {columnDiv_css}
          onDragOver= {(e) => e.preventDefault()}
          onDrop={(e) => handleDrop(e, column.id)}>
-          <h1 className="text-2xl text-red-400">
-            {column.title}
-          </h1>
+          
+                  <div className="flex justify-between items-center mb-3">
+              <h1 className="text-2xl text-red-400">
+                {column.title}
+              </h1>
+              {column.tasks.length === 0 && (
+                  <button 
+                      onClick={() => deleteColumn(column.id)}
+                      className="text-red-500 hover:text-red-700 cursor-pointer p-1"
+                      title="Delete Empty Column"
+                  >
+                      <Trash size={16} />
+                  </button>
+              )}
+          </div>
+
+
           <div>
             {column.tasks.map((task) => (
               <div key={task.id}
