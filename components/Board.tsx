@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { kanban,Column,Task} from "@/types/board";
 import {Trash,SquarePen} from "lucide-react";
+import { title } from "process";
 
 
 
@@ -9,26 +10,43 @@ export default function Board(){
     const timestamp = Date.now();
     const date = new Date(timestamp);
 
-    const addColumn = () => {
+    const addColumn = async () => {
     const title = prompt("enter the column title");
     if(!board) return;
 
     if(!title) return;
-    const newColumn: Column = {
-        id: `col-${Date.now()}`,
-        title: title,
-        tasks: [],
-        boardId: board.id
-    }
-    setBoard(prevBoard => {
+    try{
+        const res = await fetch("/api/columns",{
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                title,
+                boardId: board.id
+            })
+        })
+
+        if(!res.ok){
+            throw new Error("failed to save column to database");
+        }
+
+        const newColumn: Column = await res.json();
+
+         setBoard(prevBoard => {
         if(!prevBoard) return null;
         return {...prevBoard,
             columns: [...prevBoard.columns,newColumn]
         }
     })
+
+    }catch(error){
+        console.error("error adding column");
+        alert("error adding column")
+    }
     }
 
-    const addTask = (column: Column) => {
+    const addTask = async (column: Column) => {
         if(!board) return ;
 
     const id = `task-${Date.now()}`
@@ -40,28 +58,58 @@ export default function Board(){
     if(!title) return;
     if(columnId !== column.id) return;
 
-    const newTask:Task = {
-        id: id,
-        title: title,   
-        description: description,
-        columnId: columnId,
-        createdAt: createdAt,
-    }
-    setBoard(prevBoard => {
+    try{
+        const res = await fetch("/api/tasks",{
+            method: "POST",
+            headers: {
+                "Content-Type" : "application/json"
+            },
+            body: JSON.stringify({
+                title,
+                description,
+                columnId,
+            }),
+        })
+
+        if(!res.ok){
+            throw new Error("failed to save task to database");
+        }
+        const newTask = await res.json();
+
+        const formattedTask: Task = {
+            ...newTask,
+            createdAt: new Date(newTask.createdAt).toDateString(), //??
+        }
+
+         setBoard(prevBoard => {
         if(!prevBoard) return null;
         return {...prevBoard,columns: (
             prevBoard.columns.map((column) => {
             if (column.id === columnId){
-                return { ...column,tasks: [...column.tasks,newTask]}
+                return { ...column,tasks: [...column.tasks,formattedTask]}
             }
             return column;
         }))
 
         }
     })
+    }catch(error){
+        console.error("error adding task");
+        alert("error adding task")
+    }
+   
 }
 
-const deleteTask = (columnId: string, taskId: string) => {
+const deleteTask = async(columnId: string, taskId: string) => {
+    try{
+        const res = await fetch(`/api/tasks/${taskId}`,{
+            method: "DELETE",
+        })
+
+        if(!res.ok){
+            throw new Error("failed to delete task")
+        }
+
         setBoard(prevBoard => {
             if(!prevBoard) return null;
             return {
@@ -77,9 +125,15 @@ const deleteTask = (columnId: string, taskId: string) => {
                 })
             }
         })
+
+    }catch(error){
+        console.error(`error deleting task`);
+        alert(`error deleting task`)
+    }
+        
 }
 
-const editTask = (coloumnId:string,taskId:string) => {
+const editTask = async(coloumnId:string,taskId:string) => {
     if(!board) return;
 
     const currentColumn = board.columns.find(col => col.id === coloumnId)
@@ -92,7 +146,25 @@ const editTask = (coloumnId:string,taskId:string) => {
     if(!newTitle) return;
     const newDescription = prompt("Edit Task description:",currentTask.description || "");
 
-    setBoard(prevBoard => {
+    try{
+        const res = await fetch(`/api/tasks/${taskId}`,{
+            method: "PATCH",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                title: newTitle,
+                description: newDescription,
+            })
+        })
+
+        if(!res.ok){
+            throw new Error("failed to edit task");
+        }
+
+        const updatedTask = await res.json();
+
+         setBoard(prevBoard => {
         if(!prevBoard) return null;
         return{
         ...prevBoard,
@@ -102,7 +174,7 @@ const editTask = (coloumnId:string,taskId:string) => {
                     ...col,
                     tasks: col.tasks.map((task) => {
                         if(task.id === taskId){
-                            return  {...task,title: newTitle,description: newDescription,}
+                            return  {...task,title: updatedTask.title,description: updatedTask.description,}
                         }
                         return task;
                         
@@ -112,6 +184,10 @@ const editTask = (coloumnId:string,taskId:string) => {
             return col;
         })
     }})
+    }catch(error){
+        console.error(`error editing task`);
+        alert(`error updating task`)
+    }
 }
 
 const handleDragStart = (e: React.DragEvent,taskId: string, sourceColId: string) => {
@@ -119,13 +195,27 @@ const handleDragStart = (e: React.DragEvent,taskId: string, sourceColId: string)
     e.dataTransfer.setData("sourceColId",sourceColId);
 }
 
-const handleDrop = (e: React.DragEvent, targetColId: string) => {   
+const handleDrop = async(e: React.DragEvent, targetColId: string) => {   
     const taskId = e.dataTransfer.getData("taskId");
     const sourceColId = e.dataTransfer.getData("sourceColId");
 
     if(sourceColId == targetColId) return;
 
-    setBoard(prevBoard => {
+    try{
+        const res = await fetch(`/api/tasks/${taskId}`,{
+            method: "PATCH",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                columnId: targetColId,
+            }),
+        })
+        if(!res.ok){
+            throw new Error(`failed to add new task`)
+        }
+
+         setBoard(prevBoard => {
         if(!prevBoard) return null;
 
         const sourceCol = prevBoard.columns.find(col => col.id === sourceColId);
@@ -154,48 +244,14 @@ const handleDrop = (e: React.DragEvent, targetColId: string) => {
             })
         }
     })
+
+    }catch(error){
+        console.error(`error updating task`)
+    }
+
+   
 }
-    const task1 = {
-        id: '1',
-        title: 'play gta 5',
-        description: 'i have to play gta 1 hour',
-        columnId: '1234',
-        createdAt: `${date.toDateString()}`
-    }
-    const task3 = {
-        id: '2',
-        title: 'eat donut',
-        description: 'i want to eat a choco donut',
-        columnId: '1235',
-        createdAt: `${date.toDateString()}`,
-    }
-    const task4 = {
-        id: '3',
-        title: 'cycling',
-        description: 'go 5Km cycling',
-        columnId: '1236',
-        createdAt: `${date.toDateString()}`,
-    }
-
-     const column1 = {
-        id: '1234',
-        title: 'To Do',
-        tasks: [task1],
-        boardId: 'board1',
-    }
-    const column2 = {
-        id: '1235',
-        title: 'In Progress',
-        tasks: [task3],
-        boardId: 'board1',
-    }
-
-    const column3 = {
-        id: '12346',
-        title: 'Done',
-        tasks: [task4],
-        boardId: 'board1',
-    }
+ 
     const [board,setBoard] = useState<kanban | null>(null)
     
     useEffect(() => {
