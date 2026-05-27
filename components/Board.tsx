@@ -316,7 +316,7 @@ const handleDrop = async(e: React.DragEvent, targetColId: string) => {
         }
         fetchBoard();
         const sokcetUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3001";
-        const socket = io(sokcetUrl,{addTrailingSlash: false,transports: ["websocket"]}); //*important
+        const socket = io(sokcetUrl,{addTrailingSlash: false}); //*important
         socketRef.current = socket;
 
         socket.emit("join-board",boardId);
