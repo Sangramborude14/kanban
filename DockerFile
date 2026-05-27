@@ -1,0 +1,18 @@
+# Offical Node.js image
+FROM node:20-alpine
+
+#Set working directory inside the container
+WORKDIR /app
+
+COPY package*.json ./
+
+RUN npm ci
+
+#Copy only the socket folder and typescript
+
+COPY socket/ ./socket/
+COPY tsconfig.json ./
+
+EXPOSE 3001
+
+CMD ["npx","tsx","socket/server.ts"]

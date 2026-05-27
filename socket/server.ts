@@ -5,7 +5,7 @@ const httpServer = createServer();
 
 const io = new Server(httpServer,{
     cors: {
-        origin: "http://localhost:3000",
+        origin: process.env.CORS_ORIGIN || "http://localhost:3000",
         methods: ["GET","POST"]
     }
 })
@@ -30,7 +30,7 @@ io.on("connection",(socket) => {
 
     
 } )
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
     httpServer.listen(PORT,() => {
         console.log(`Socket.io server listening on http://localhost:${PORT}`)
     })
