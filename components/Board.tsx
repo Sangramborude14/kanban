@@ -306,7 +306,7 @@ const handleDrop = async(e: React.DragEvent, targetColId: string) => {
     useEffect(() => {
         const fetchBoard = async () => {
             try{
-                const res = await fetch(`/api/boards/${boardId}`);
+                const res = await fetch(`/api/boards/${boardId}?t=${Date.now()}`,{cache: 'no-store'});
                 const data = await res.json();
                 setBoard(data);
             }catch(error){
