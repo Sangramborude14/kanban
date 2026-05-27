@@ -1,14 +1,16 @@
 "use client"
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { kanban,Column,Task} from "@/types/board";
 import {Trash,SquarePen} from "lucide-react";
-import { title } from "process";
+import { io } from "socket.io-client";
 
 
 
 export default function Board({boardId}: {boardId: string}){
     const timestamp = Date.now();
     const date = new Date(timestamp);
+    const socketRef = useRef<any>(null);
+    const [board,setBoard] = useState<kanban | null>(null)
 
     const addColumn = async () => {
     const title = prompt("enter the column title");
@@ -39,6 +41,8 @@ export default function Board({boardId}: {boardId: string}){
             columns: [...prevBoard.columns,newColumn]
         }
     })
+
+    socketRef.current?.emit("board-update",{boardId,action: "add-column"});
 
     }catch(error){
         console.error("error adding column");
@@ -73,6 +77,9 @@ export default function Board({boardId}: {boardId: string}){
                 columns: prevBoard.columns.filter((col) => col.id !== columnId)
             }
         })
+
+        socketRef.current?.emit("board-update",{boardId,action: "delete-column"})
+
     }catch(error){
         console.error(`error deleting column`);
         alert("could not delete column")
@@ -127,6 +134,9 @@ export default function Board({boardId}: {boardId: string}){
 
         }
     })
+
+    socketRef.current?.emit("board-update",{ boardId,action: "add-column" });
+
     }catch(error){
         console.error("error adding task");
         alert("error adding task")
@@ -159,6 +169,8 @@ const deleteTask = async(columnId: string, taskId: string) => {
                 })
             }
         })
+
+        socketRef.current?.emit("board-update",{boardId, action: "delete-task"})
 
     }catch(error){
         console.error(`error deleting task`);
@@ -218,6 +230,9 @@ const editTask = async(coloumnId:string,taskId:string) => {
             return col;
         })
     }})
+
+    socketRef.current?.emit("board-update",{boardId, action: "edit-task"})
+
     }catch(error){
         console.error(`error editing task`);
         alert(`error updating task`)
@@ -279,6 +294,8 @@ const handleDrop = async(e: React.DragEvent, targetColId: string) => {
         }
     })
 
+    socketRef.current?.emit("board-update",{boardId, action: "move-task"})
+
     }catch(error){
         console.error(`error updating task`)
     }
@@ -286,8 +303,6 @@ const handleDrop = async(e: React.DragEvent, targetColId: string) => {
    
 }
  
-    const [board,setBoard] = useState<kanban | null>(null)
-    
     useEffect(() => {
         const fetchBoard = async () => {
             try{
@@ -300,6 +315,20 @@ const handleDrop = async(e: React.DragEvent, targetColId: string) => {
             
         }
         fetchBoard();
+        const socket = io("http://localhost:3001");
+        socketRef.current = socket;
+
+        socket.emit("join-board",boardId);
+
+        socket.on("board-updated", () => {
+            console.log("Board updated by another client, re-fetching...");
+            fetchBoard();
+        })
+
+        return () => {
+            socket.disconnect();
+        }
+
     },[boardId])
     
     if(!board){
